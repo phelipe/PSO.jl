@@ -1,5 +1,4 @@
 module PSO
-    using StaticArrays 
     
     function make_constraints(::Type{Val{nothing}}, args, kwargs, verbose)
         verbose && println("No constraints given.")
@@ -24,10 +23,35 @@ module PSO
         fp[i_update] = fx[i_update]
     end
 
+    function findBestLocal(data::Vector, bests::Vector ,n::Integer) 
+        order = sortperm(data,rev=true)
+        order_size = length(order)
+        value = Float64[]
+        position = Integer[]
+        for i = 1:order_size
+            aux = mod.(collect(i-n:i+n),order_size)
+            aux = map(x-> x==0 ? order_size : x, aux)
+            position_best = order[aux]
+            out = findmin(bests[position_best])
+            push!(value,out[1])
+            push!(position,position_best[out[2]])
+        end
+        value, position    
+    end
+
+    function findBestGlobal(data::Vector, bests::Vector ,n::Integer = 0)
+        aux = findmin(bests)
+        aux2 = ones(Integer,length(data))
+        value = aux2 .* aux[1]
+        position = aux2 .* aux[2]
+        value, position
+    end
+
     function pso(func::Function, lb::Vector, ub::Vector, constraints, args, kwargs,
-                 swarmsize, ω, ϕp, ϕg, maxiter, minstep, minfunc, verbose)
-        assert(length(ub) == length(lb))
-        assert(all(ub .> lb))
+                 swarmsize, ω, ϕp, ϕg, maxiter, minstep, minfunc, verbose, 
+                 neighborhood, n)
+        @assert length(ub) == length(lb) "ub and lb must have same dimension"
+        @assert all(ub .> lb)
 
         obj = x -> func(x, args...; kwargs...)
         cons = make_constraints(constraints, args, kwargs, verbose)
@@ -36,14 +60,12 @@ module PSO
         # Initialize the particle swarm
         S = swarmsize
         D = length(lb) # the number of dimensions each particle has
-        ub = SVector{D}(ub)
-        lb = SVector{D}(lb)
         vhigh = abs.(ub .- lb)
         vlow = -vhigh
        
-        x = [@SVector rand(D) for x in 1:S] # particle positions
-        v = [@SVector rand(D) for x in 1:S] # particle velocities
-        p = [@SVector zeros(D) for x in 1:S] # best particle positions
+        x = [rand(D) for x in 1:S] # particle positions
+        v = [rand(D) for x in 1:S] # particle velocities
+        p = [zeros(D) for x in 1:S] # best particle positions
         map!(x-> lb .+ x .* (ub .- lb), x, x) # particle positions
         map!(x-> vlow .+ x .* (vhigh .- vlow), v, v)# particle velocities
        
@@ -57,32 +79,32 @@ module PSO
         # Store particle's best position (if constraints are satisfied)
         update_position!(x, p, fx, fp, fs)
 
-        # TODO: tenho que fazer o g ser um vetor com as melhores posições e fazer funções para 
-        # que estes valores sejam escolhidos conforme a topologia escolhida, vou fazer de uma
-        # maneira que seja possível escolher a quantidade de vizinhos.
-        # Aqui que vai ficar inicialmente o lance das funções pois o vetor g vai ser diferente
-        #dependendo de como o usuário quer.
         # Update swarm's best position
-        i_min = indmin(fp)
-        if fp[i_min] < fg
-            g = copy(p[i_min])
-            fg = fp[i_min]
-        end
+        fg, g = neighborhood(fx, fp, n)
+        g = copy(p[g])
 
         # TODO: tirei o while e tudo abaixo dele daqui, colocar posteriormente
     end
 
-    function pso(func, lb, ub; constraints=nothing, args=(), kwargs=Dict(), swarmsize=100,
+    function pso(func, lb, ub; 
+        neighborhood = findBestGlobal, n = 2, constraints=nothing, args=(), kwargs=Dict(), swarmsize=100,
                  omega=0.5, phip=0.5, phig=0.5, maxiter=100, minstep=1e-8, minfunc=1e-8,
                  verbose=false, particle_output=false)
         #g, fg, p, fp = pso(func, lb, ub, constraints, args, kwargs,
         #    swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose)
         #return particle_output? (g, fg, p, fp) : (g, fg)
         # TODO: a parte acima está comentada temporariamente para desenvolvimento
-        pso(func, lb, ub, constraints, args, kwargs,
-            swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose)
+        if iseven(n)
+            n= Integer(n/2)
+            pso(func, lb, ub, constraints, args, kwargs,
+            swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose, neighborhood, n)
+        else
+            warn("The value of 'n' must be even") 
+        end
+        
+        
     end
 
-    export pso;
+    export pso, findBestGlobal, findBestLocal ;
 
 end # module
