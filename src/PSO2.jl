@@ -82,6 +82,33 @@ module PSO
         g = copy(p[g])
 
         # TODO: tirei o while e tudo abaixo dele daqui, colocar posteriormente
+        #it = 1
+        #while it <= maxiter
+            
+            # Update the particles' velocities and positions
+            v = ϕg*map((x,y)->x.*y,g.-x,[rand(D) for i= 1:S ])
+            v .+=  ϕp*map((x,y)->x.*y,p.-x,[rand(D) for i= 1:S ])
+            v .+= ω*v
+            x .+= v
+            
+            # Correct for bound violations
+            maskl = [x[i] .< lb for i = 1:S]
+            masku = [x[i] .> ub for i = 1:S]
+            mask = [ maskl[i] .| masku[i] for i = 1:S]
+            x = map((x,y) -> x.*(.~(y)), x, mask)
+            x .+= [lb.*maskl[i] for i = 1:S]
+            x .+= [ub.*masku[i] for i=1:S]
+
+            # Update objectives and constraints
+            for i = 1:S
+                fx[i] = obj(x[i])
+                fs[i] = is_feasible(x[i])
+            end
+
+            # Store particle's best position (if constraints are satisfied)
+            update_position!(x, p, fx, fp, fs)
+        #end
+        
     end
 
     function pso(func, lb, ub; 
