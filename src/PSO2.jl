@@ -50,8 +50,6 @@ module PSO
     function pso(func::Function, lb::Vector, ub::Vector, constraints, args, kwargs,
                  swarmsize, ω, ϕp, ϕg, maxiter, minstep, minfunc, verbose, 
                  neighborhood, n)
-        @assert length(ub) == length(lb) "ub and lb must have same dimension"
-        @assert all(ub .> lb)
 
         obj = x -> func(x, args...; kwargs...)
         cons = make_constraints(constraints, args, kwargs, verbose)
@@ -94,13 +92,14 @@ module PSO
         #    swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose)
         #return particle_output? (g, fg, p, fp) : (g, fg)
         # TODO: a parte acima está comentada temporariamente para desenvolvimento
-        if iseven(n)
-            n= Integer(n/2)
-            pso(func, lb, ub, constraints, args, kwargs,
-            swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose, neighborhood, n)
-        else
-            warn("The value of 'n' must be even") 
-        end
+        @assert iseven(n) "The value of 'n' must be even"
+        @assert length(ub) == length(lb) "ub and lb must have same dimension"
+        @assert all(ub .> lb) "Each value of 'ub' must be greater than 'lb'"
+        @assert (swarmsize > n) " 'swarmsize' must be greater than 'n'"
+
+        n= Integer(n/2)
+        pso(func, lb, ub, constraints, args, kwargs,
+        swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose, neighborhood, n)
         
         
     end
