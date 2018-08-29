@@ -71,8 +71,11 @@ module PSO
         fs = [is_feasible(x[i]) for i = 1:S]  # feasibility of each particle
         fp = ones(S) * Inf  # best particle function values
 
-        g = copy(x)  # best swarm position
-        fg = ones(S) * Inf  # best swarm position starting value
+        g = copy(x)  # best neighborhood swarm position
+        fg = ones(S) * Inf  # best neighborhood swarm position starting value
+
+        best_position = copy(x[1]) # best position
+        best_value= Inf # best position value
 
         # Store particle's best position (if constraints are satisfied)
         update_position!(x, p, fx, fp, fs)
@@ -82,8 +85,8 @@ module PSO
         g = copy(p[g])
 
         # TODO: tirei o while e tudo abaixo dele daqui, colocar posteriormente
-        #it = 1
-        #while it <= maxiter
+        it = 1
+        while it <= maxiter
             
             # Update the particles' velocities and positions
             v = ϕg*map((x,y)->x.*y,g.-x,[rand(D) for i= 1:S ])
@@ -107,7 +110,32 @@ module PSO
 
             # Store particle's best position (if constraints are satisfied)
             update_position!(x, p, fx, fp, fs)
-        #end
+
+            # Compare swarm's best position with global best position
+            i_min = findmin(fp) 
+            if i_min[1] < best_value
+                verbose && println("New best for swarm at iteration $(it): $(p[i_min[2]]) $(i_min[1])")
+
+                stepsize = √(sum((best_position .- p[i_min[2]]).^2))
+                if abs.(best_value .- i_min[1]) <= minfunc
+                    verbose && println("Stopping search: Swarm best objective change less than $(minfunc)")
+                    return (best_position, best_value, p, fp)
+                end
+                if stepsize <= minstep
+                    verbose && println("Stopping search: Swarm best position change less than $(minstep)")
+                    return (best_position, best_value, p, fp)
+                end
+                best_position = copy(p[i_min[2]]) # best position
+                best_value= i_min[1] # best position value    
+            end
+
+            verbose && println("Best after iteration $(it): $(best_position) $(best_value)")
+            it += 1
+            println("Stopping search: maximum iterations reached --> $(maxiter)")
+            is_feasible(best_position) || print("However, the optimization couldn't find a feasible design. Sorry")
+            return (best_position, best_value, p, fp)
+
+        end
         
     end
 
@@ -125,9 +153,9 @@ module PSO
         @assert (swarmsize > n) " 'swarmsize' must be greater than 'n'"
 
         n= Integer(n/2)
-        pso(func, lb, ub, constraints, args, kwargs,
+        g, fg, p, fp = pso(func, lb, ub, constraints, args, kwargs,
         swarmsize, omega, phip, phig, maxiter, minstep, minfunc, verbose, neighborhood, n)
-        
+        return particle_output ? (g, fg, p, fp) : (g, fg)
         
     end
 
