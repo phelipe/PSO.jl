@@ -131,12 +131,11 @@ module PSO
 
             verbose && println("Best after iteration $(it): $(best_position) $(best_value)")
             it += 1
-            println("Stopping search: maximum iterations reached --> $(maxiter)")
-            is_feasible(best_position) || print("However, the optimization couldn't find a feasible design. Sorry")
-            return (best_position, best_value, p, fp)
-
         end
         
+        println("Stopping search: maximum iterations reached --> $(maxiter)")
+        is_feasible(best_position) || print("However, the optimization couldn't find a feasible design. Sorry")
+        return (best_position, best_value, p, fp)        
     end
 
     function pso(func, lb, ub; 
