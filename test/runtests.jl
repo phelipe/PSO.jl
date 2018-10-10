@@ -1,6 +1,5 @@
 using PSO
-using Base.Test
-using FactCheck
+using Test
 
 facts("Example minimization of 4th-order banana function") do
     function myfunc(x)
