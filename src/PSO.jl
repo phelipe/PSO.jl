@@ -68,6 +68,7 @@ module PSO
         map!(x-> lb .+ x .* (ub .- lb), x, x) # particle positions
         map!(x-> vlow .+ x .* (vhigh .- vlow), v, v)# particle velocities
 
+        verbose && println("Initialize current particle function values.")
         fx = [obj(x[i]) for i = 1:S]  # current particle function values
         fs = [is_feasible(x[i]) for i = 1:S]  # feasibility of each particle
         fp = ones(S) * Inf  # best particle function values
