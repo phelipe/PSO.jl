@@ -56,6 +56,7 @@ module PSO
         is_feasible = x -> all(cons(x) .>= 0)
 
         # Initialize the particle swarm
+        verbose && println("Initialize the particle swarm.")
         S = swarmsize
         D = length(lb) # the number of dimensions each particle has
         vhigh = abs.(ub .- lb)
@@ -78,14 +79,17 @@ module PSO
         best_value= Inf # best position value
 
         # Store particle's best position (if constraints are satisfied)
+        verbose && println("Store particle's best position.")
         update_position!(x, p, fx, fp, fs)
 
         # Update swarm's best position
+        verbose && println("Update swarm's best position.")
         fg, g = neighborhood(fx, fp, n)
         g = copy(p[g])
 
         it = 1
         it_best = 1
+        verbose && println("Start iteration.")
         while it <= maxiter
         
         # Update the particles' velocities and positions
